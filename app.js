@@ -510,7 +510,8 @@ $('#form-login').addEventListener('submit', async e => {
   botao.disabled = false;
   if (error) {
     erro.textContent = /signups not allowed|not found/i.test(error.message)
-      ? 'Este e-mail não tem acesso. Peça ao dono da barbearia para liberar.'
+      // o Supabase dá o mesmo erro para e-mail desconhecido e para convite ainda não aceito
+      ? 'Não foi possível enviar o link. Se você recebeu um convite por e-mail, clique primeiro em “Accept the invite” nele. Se não recebeu, peça ao dono da barbearia para liberar seu acesso.'
       : /rate limit|security purposes/i.test(error.message)
         ? 'Muitas tentativas. Aguarde um minuto e tente de novo.'
         : error.message;
