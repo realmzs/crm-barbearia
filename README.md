@@ -23,14 +23,16 @@ Sistema online para gerenciar clientes e horários de uma barbearia. Cada barbei
    ```sql
    insert into equipe (email) values ('dono@exemplo.com'), ('barbeiro@exemplo.com');
    ```
-4. Em **Authentication → Users → Add user → Create new user**, crie cada pessoa com e-mail e senha (marque *Auto Confirm User*).
-5. Em **Authentication → Sign In / Providers**, desligue **Allow new users to sign up**, para ninguém criar conta sozinho.
-6. Em **Project Settings → API**, copie a **Project URL** e a chave **anon / publishable** para o arquivo [`config.js`](config.js).
+4. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL** (ex.: `https://realmzs.github.io/crm-barbearia/`).
+5. Em **Authentication → Users → Add user → Send invitation**, convide cada pessoa pelo e-mail. Ela clica no link recebido e cria a própria senha no site.
+6. Em **Authentication → Sign In / Providers**, desligue **Allow new users to sign up**, para ninguém criar conta sozinho.
+7. Em **Project Settings → API**, copie a **Project URL** e a chave **anon / publishable** para o arquivo [`config.js`](config.js).
    ⚠️ Nunca use a chave `service_role` / `secret` no site.
 
 ## Adicionar ou remover um barbeiro
 
-- **Adicionar**: faça os passos 3 e 4 com o e-mail dele e cadastre o nome em **Configurações → Barbeiros**.
+- **Adicionar**: faça os passos 3 e 5 com o e-mail dele e cadastre o nome em **Configurações → Barbeiros**.
+- **Esqueceu a senha**: na tela de login, digite o e-mail e clique em **Esqueci minha senha**.
 - **Remover o acesso**: `delete from equipe where email = 'barbeiro@exemplo.com';` e apague o usuário em Authentication.
 
 ## Arquivos

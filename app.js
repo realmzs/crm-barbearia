@@ -37,6 +37,8 @@ const primeiroNome = nome => String(nome).trim().split(/\s+/)[0];
 // Tudo fica em memória em `db` (camelCase); cada alteração é gravada no banco (snake_case).
 // Mudanças feitas por outros aparelhos chegam pelo canal em tempo real e recarregam a tela.
 const TABELAS = ['barbeiros', 'servicos', 'clientes', 'agendamentos'];   // ordem respeita as chaves estrangeiras
+// lido antes de criar o cliente, que consome o #access_token do link de convite/recuperação
+const tipoLink = new URLSearchParams(location.hash.slice(1)).get('type');
 const cfg = window.CRM_CONFIG || {};
 const configurado = window.supabase && cfg.supabaseUrl && !cfg.supabaseUrl.includes('SEU-PROJETO');
 const sb = configurado ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
@@ -456,12 +458,14 @@ document.addEventListener('click', e => {
     'exportar': exportar,
     'importar': () => $('#cfg-import').click(),
     'sair': () => sb.auth.signOut(),
+    'esqueci': esqueciSenha,
   })[el.dataset.act]?.();
 });
 
 // ---------- login e início ----------
 function tela(qual, aviso = '') {
   $('#tela-login').hidden = qual !== 'login';
+  $('#tela-senha').hidden = qual !== 'senha';
   $('#tela-aviso').hidden = qual !== 'aviso';
   $('header').hidden = $('main').hidden = qual !== 'app';
   if (aviso) $('#aviso-texto').innerHTML = aviso;
@@ -513,9 +517,35 @@ $('#form-login').addEventListener('submit', async e => {
   entrar(data.user);
 });
 
+async function esqueciSenha() {
+  const email = $('#form-login').email.value.trim();
+  const erro = $('#login-erro');
+  erro.hidden = false;
+  if (!email) { erro.textContent = 'Digite seu e-mail acima e clique de novo em “Esqueci minha senha”.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  erro.textContent = error ? error.message : 'Se este e-mail tiver acesso, você vai receber um link para criar uma nova senha.';
+}
+
+$('#form-senha').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, erro = $('#senha-erro');
+  erro.hidden = true;
+  if (f.senha.value !== f.senha2.value) { erro.textContent = 'As senhas não são iguais.'; erro.hidden = false; return; }
+  const { data, error } = await sb.auth.updateUser({ password: f.senha.value });
+  if (error) { erro.textContent = error.message; erro.hidden = false; return; }
+  f.reset();
+  history.replaceState(null, '', location.pathname);
+  entrar(data.user);
+});
+
 (async () => {
   if (!sb) return tela('aviso', 'Sistema ainda não configurado: preencha o arquivo <b>config.js</b> com os dados do seu projeto Supabase (veja o README).');
-  sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); } });
+  sb.auth.onAuthStateChange(ev => {
+    if (ev === 'SIGNED_OUT') { db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); }
+    if (ev === 'PASSWORD_RECOVERY') tela('senha');
+  });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) entrar(session.user); else tela('login');
+  if (session && (tipoLink === 'invite' || tipoLink === 'recovery')) tela('senha');   // veio pelo link do e-mail
+  else if (session) entrar(session.user);
+  else tela('login');
 })();
