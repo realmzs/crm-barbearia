@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM Barbearia</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="tela" id="tela-login" hidden>
+  <form class="box" id="form-login">
+    <h1>✂ CRM Barbearia</h1>
+    <label>E-mail<input name="email" type="email" required autocomplete="username"></label>
+    <label>Senha<input name="senha" type="password" required autocomplete="current-password"></label>
+    <p class="erro" id="login-erro" hidden></p>
+    <button class="btn">Entrar</button>
+  </form>
+</div>
+<div class="tela" id="tela-aviso" hidden>
+  <div class="box"><h1>✂ CRM Barbearia</h1><p id="aviso-texto"></p>
+    <button class="btn ghost" data-act="sair" id="aviso-sair" hidden>Sair</button></div>
+</div>
+
+<header hidden>
+  <h1>✂ CRM Barbearia</h1>
+  <nav>
+    <button data-view="painel" class="on">Painel</button>
+    <button data-view="agenda">Agenda</button>
+    <button data-view="clientes">Clientes</button>
+    <button data-view="config">Configurações</button>
+  </nav>
+  <span class="usuario" id="usuario"></span>
+  <button class="btn ghost sm sair" data-act="sair">Sair</button>
+</header>
+
+<main hidden>
+  <section id="painel">
+    <div class="cards" id="pn-cards"></div>
+    <div class="grid2">
+      <div class="box">
+        <div class="box-h"><h2>Hoje</h2><button class="btn sm" data-act="novo-ag">+ Agendar</button></div>
+        <ul class="lista" id="pn-hoje"></ul>
+      </div>
+      <div class="box">
+        <h2>Aniversariantes do mês</h2>
+        <ul class="lista" id="pn-aniver"></ul>
+      </div>
+      <div class="box full">
+        <h2>Chamar de volta <small>clientes sem vir há mais de 30 dias e sem horário marcado</small></h2>
+        <ul class="lista" id="pn-sumidos"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="agenda" hidden>
+    <div class="toolbar">
+      <button class="btn ghost" data-act="dia" data-d="-1" title="Dia anterior">◀</button>
+      <input type="date" id="ag-data">
+      <button class="btn ghost" data-act="dia" data-d="1" title="Próximo dia">▶</button>
+      <button class="btn ghost" data-act="dia" data-d="0">Hoje</button>
+      <select id="ag-barbeiro"></select>
+      <span class="spacer"></span>
+      <button class="btn" data-act="novo-ag">+ Agendar</button>
+    </div>
+    <p class="resumo" id="ag-resumo"></p>
+    <ul class="lista" id="ag-lista"></ul>
+  </section>
+
+  <section id="clientes" hidden>
+    <div class="toolbar">
+      <input type="search" id="cli-busca" placeholder="Buscar por nome ou telefone">
+      <button class="btn" data-act="novo-cli">+ Cliente</button>
+    </div>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>Telefone</th><th>Última visita</th><th>Visitas</th><th>Total gasto</th></tr></thead>
+        <tbody id="cli-tabela"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="config" hidden>
+    <div class="grid2">
+      <div class="box">
+        <h2>Serviços</h2>
+        <table class="edit">
+          <thead><tr><th>Serviço</th><th>Preço (R$)</th><th>Duração (min)</th><th></th></tr></thead>
+          <tbody id="cfg-servicos"></tbody>
+        </table>
+        <button class="btn ghost sm" data-act="add" data-list="servicos">+ Serviço</button>
+      </div>
+      <div class="box">
+        <h2>Barbeiros</h2>
+        <table class="edit"><tbody id="cfg-barbeiros"></tbody></table>
+        <button class="btn ghost sm" data-act="add" data-list="barbeiros">+ Barbeiro</button>
+      </div>
+      <div class="box full">
+        <h2>Backup</h2>
+        <p class="nota">Os dados ficam salvos online e são compartilhados com a equipe. Exporte um backup de vez em quando por segurança. Importar um backup adiciona ou atualiza registros, sem apagar nada.</p>
+        <div class="toolbar">
+          <button class="btn" data-act="exportar">Exportar backup</button>
+          <button class="btn ghost" data-act="importar">Importar backup</button>
+          <input type="file" id="cfg-import" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg-ag">
+  <form id="form-ag">
+    <h2 id="ag-titulo">Novo agendamento</h2>
+    <div class="row">
+      <label>Cliente<select name="clienteId" required></select></label>
+      <button type="button" class="btn ghost" data-act="novo-cli-rapido">+ Novo cliente</button>
+    </div>
+    <div class="row">
+      <label>Serviço<select name="servicoId" required></select></label>
+      <label>Barbeiro<select name="barbeiroId" required></select></label>
+    </div>
+    <div class="row">
+      <label>Data<input type="date" name="data" required></label>
+      <label>Hora<input type="time" name="hora" required></label>
+      <label>Valor (R$)<input type="number" name="valor" min="0" step="0.01" required></label>
+    </div>
+    <label id="ag-status-wrap">Status
+      <select name="status">
+        <option value="agendado">Agendado</option>
+        <option value="concluido">Concluído</option>
+        <option value="faltou">Faltou</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </label>
+    <label>Observações<textarea name="obs" rows="2"></textarea></label>
+    <div class="acoes">
+      <button type="button" class="btn danger" data-act="excluir-ag" id="ag-excluir">Excluir</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn ghost" data-act="fechar">Cancelar</button>
+      <button class="btn">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-cli">
+  <form id="form-cli">
+    <h2 id="cli-titulo">Novo cliente</h2>
+    <label>Nome<input name="nome" required autocomplete="off"></label>
+    <div class="row">
+      <label>Telefone / WhatsApp<input name="telefone" type="tel" placeholder="(11) 91234-5678" autocomplete="off"></label>
+      <label>Nascimento<input name="nascimento" type="date"></label>
+    </div>
+    <label>Observações<textarea name="obs" rows="2" placeholder="Ex.: corte degradê, máquina 1 nas laterais"></textarea></label>
+    <div id="cli-extra"></div>
+    <div class="acoes">
+      <button type="button" class="btn danger" data-act="excluir-cli" id="cli-excluir">Excluir</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn ghost" data-act="agendar-cli" id="cli-agendar">Agendar</button>
+      <button type="button" class="btn ghost" data-act="fechar">Cancelar</button>
+      <button class="btn">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
