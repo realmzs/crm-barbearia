@@ -37,8 +37,6 @@ const primeiroNome = nome => String(nome).trim().split(/\s+/)[0];
 // Tudo fica em memória em `db` (camelCase); cada alteração é gravada no banco (snake_case).
 // Mudanças feitas por outros aparelhos chegam pelo canal em tempo real e recarregam a tela.
 const TABELAS = ['barbeiros', 'servicos', 'clientes', 'agendamentos'];   // ordem respeita as chaves estrangeiras
-// lido antes de criar o cliente, que consome o #access_token do link de convite/recuperação
-const tipoLink = new URLSearchParams(location.hash.slice(1)).get('type');
 const cfg = window.CRM_CONFIG || {};
 const configurado = window.supabase && cfg.supabaseUrl && !cfg.supabaseUrl.includes('SEU-PROJETO');
 const sb = configurado ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
@@ -458,14 +456,12 @@ document.addEventListener('click', e => {
     'exportar': exportar,
     'importar': () => $('#cfg-import').click(),
     'sair': () => sb.auth.signOut(),
-    'esqueci': esqueciSenha,
   })[el.dataset.act]?.();
 });
 
 // ---------- login e início ----------
 function tela(qual, aviso = '') {
   $('#tela-login').hidden = qual !== 'login';
-  $('#tela-senha').hidden = qual !== 'senha';
   $('#tela-aviso').hidden = qual !== 'aviso';
   $('header').hidden = $('main').hidden = qual !== 'app';
   if (aviso) $('#aviso-texto').innerHTML = aviso;
@@ -503,49 +499,38 @@ async function entrar(user) {
 
 $('#form-login').addEventListener('submit', async e => {
   e.preventDefault();
-  const f = e.target, botao = f.querySelector('button');
-  $('#login-erro').hidden = true;
+  const f = e.target, botao = f.querySelector('button'), erro = $('#login-erro'), ok = $('#login-ok');
+  erro.hidden = ok.hidden = true;
   botao.disabled = true;
-  const { data, error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.senha.value });
+  const { error } = await sb.auth.signInWithOtp({
+    email: f.email.value.trim(),
+    // só quem já foi convidado recebe o link: ninguém cria conta sozinho por aqui
+    options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname },
+  });
   botao.disabled = false;
   if (error) {
-    $('#login-erro').textContent = error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : error.message;
-    $('#login-erro').hidden = false;
+    erro.textContent = /signups not allowed|not found/i.test(error.message)
+      ? 'Este e-mail não tem acesso. Peça ao dono da barbearia para liberar.'
+      : /rate limit|security purposes/i.test(error.message)
+        ? 'Muitas tentativas. Aguarde um minuto e tente de novo.'
+        : error.message;
+    erro.hidden = false;
     return;
   }
-  f.senha.value = '';
-  entrar(data.user);
-});
-
-async function esqueciSenha() {
-  const email = $('#form-login').email.value.trim();
-  const erro = $('#login-erro');
-  erro.hidden = false;
-  if (!email) { erro.textContent = 'Digite seu e-mail acima e clique de novo em “Esqueci minha senha”.'; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
-  erro.textContent = error ? error.message : 'Se este e-mail tiver acesso, você vai receber um link para criar uma nova senha.';
-}
-
-$('#form-senha').addEventListener('submit', async e => {
-  e.preventDefault();
-  const f = e.target, erro = $('#senha-erro');
-  erro.hidden = true;
-  if (f.senha.value !== f.senha2.value) { erro.textContent = 'As senhas não são iguais.'; erro.hidden = false; return; }
-  const { data, error } = await sb.auth.updateUser({ password: f.senha.value });
-  if (error) { erro.textContent = error.message; erro.hidden = false; return; }
-  f.reset();
-  history.replaceState(null, '', location.pathname);
-  entrar(data.user);
+  ok.textContent = `Pronto! Abra o e-mail enviado para ${f.email.value.trim()} e clique no link para entrar.`;
+  ok.hidden = false;
 });
 
 (async () => {
   if (!sb) return tela('aviso', 'Sistema ainda não configurado: preencha o arquivo <b>config.js</b> com os dados do seu projeto Supabase (veja o README).');
-  sb.auth.onAuthStateChange(ev => {
-    if (ev === 'SIGNED_OUT') { db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); }
-    if (ev === 'PASSWORD_RECOVERY') tela('senha');
+  let dentro = false;
+  sb.auth.onAuthStateChange((ev, session) => {
+    if (ev === 'SIGNED_OUT') { dentro = false; db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); }
+    // login feito pelo link em outra aba ou logo após o redirecionamento
+    if (ev === 'SIGNED_IN' && session && !dentro) { dentro = true; setTimeout(() => entrar(session.user)); }
   });
   const { data: { session } } = await sb.auth.getSession();
-  if (session && (tipoLink === 'invite' || tipoLink === 'recovery')) tela('senha');   // veio pelo link do e-mail
-  else if (session) entrar(session.user);
-  else tela('login');
+  if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname);
+  if (session && !dentro) { dentro = true; entrar(session.user); }
+  else if (!session) tela('login');
 })();

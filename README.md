@@ -1,6 +1,6 @@
 # CRM Barbearia
 
-Sistema online para gerenciar clientes e horários de uma barbearia. Cada barbeiro entra com o próprio e-mail e senha, e todos veem a mesma agenda, que se atualiza sozinha quando alguém muda algo.
+Sistema online para gerenciar clientes e horários de uma barbearia. Cada barbeiro entra com o próprio e-mail, por um link de acesso (sem senha), e todos veem a mesma agenda, que se atualiza sozinha quando alguém muda algo.
 
 ## Funcionalidades
 
@@ -24,7 +24,7 @@ Sistema online para gerenciar clientes e horários de uma barbearia. Cada barbei
    insert into equipe (email) values ('dono@exemplo.com'), ('barbeiro@exemplo.com');
    ```
 4. Em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL** (ex.: `https://realmzs.github.io/crm-barbearia/`).
-5. Em **Authentication → Users → Add user → Send invitation**, convide cada pessoa pelo e-mail. Ela clica no link recebido e cria a própria senha no site.
+5. Em **Authentication → Users → Add user → Send invitation**, convide cada pessoa pelo e-mail. Para entrar, ela digita o e-mail no site e clica no link que chega: **não existe senha**.
 6. Em **Authentication → Sign In / Providers**, desligue **Allow new users to sign up**, para ninguém criar conta sozinho.
 7. Em **Project Settings → API**, copie a **Project URL** e a chave **anon / publishable** para o arquivo [`config.js`](config.js).
    ⚠️ Nunca use a chave `service_role` / `secret` no site.
@@ -32,7 +32,7 @@ Sistema online para gerenciar clientes e horários de uma barbearia. Cada barbei
 ## Adicionar ou remover um barbeiro
 
 - **Adicionar**: faça os passos 3 e 5 com o e-mail dele e cadastre o nome em **Configurações → Barbeiros**.
-- **Esqueceu a senha**: na tela de login, digite o e-mail e clique em **Esqueci minha senha**.
+- **Entrar em outro aparelho**: é só digitar o e-mail no site e clicar no link recebido. O aparelho fica conectado até clicar em **Sair**.
 - **Remover o acesso**: `delete from equipe where email = 'barbeiro@exemplo.com';` e apague o usuário em Authentication.
 
 ## Arquivos
