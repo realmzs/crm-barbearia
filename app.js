@@ -499,23 +499,38 @@ async function entrar(user) {
 
 $('#form-login').addEventListener('submit', async e => {
   e.preventDefault();
-  const f = e.target, botao = f.querySelector('button');
-  $('#login-erro').hidden = true;
+  const f = e.target, botao = f.querySelector('button'), erro = $('#login-erro'), ok = $('#login-ok');
+  erro.hidden = ok.hidden = true;
   botao.disabled = true;
-  const { data, error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.senha.value });
+  const { error } = await sb.auth.signInWithOtp({
+    email: f.email.value.trim(),
+    // só quem já foi convidado recebe o link: ninguém cria conta sozinho por aqui
+    options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname },
+  });
   botao.disabled = false;
   if (error) {
-    $('#login-erro').textContent = error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : error.message;
-    $('#login-erro').hidden = false;
+    erro.textContent = /signups not allowed|not found/i.test(error.message)
+      ? 'Este e-mail não tem acesso. Peça ao dono da barbearia para liberar.'
+      : /rate limit|security purposes/i.test(error.message)
+        ? 'Muitas tentativas. Aguarde um minuto e tente de novo.'
+        : error.message;
+    erro.hidden = false;
     return;
   }
-  f.senha.value = '';
-  entrar(data.user);
+  ok.textContent = `Pronto! Abra o e-mail enviado para ${f.email.value.trim()} e clique no link para entrar.`;
+  ok.hidden = false;
 });
 
 (async () => {
   if (!sb) return tela('aviso', 'Sistema ainda não configurado: preencha o arquivo <b>config.js</b> com os dados do seu projeto Supabase (veja o README).');
-  sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); } });
+  let dentro = false;
+  sb.auth.onAuthStateChange((ev, session) => {
+    if (ev === 'SIGNED_OUT') { dentro = false; db = { clientes: [], agendamentos: [], barbeiros: [], servicos: [] }; tela('login'); }
+    // login feito pelo link em outra aba ou logo após o redirecionamento
+    if (ev === 'SIGNED_IN' && session && !dentro) { dentro = true; setTimeout(() => entrar(session.user)); }
+  });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) entrar(session.user); else tela('login');
+  if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname);
+  if (session && !dentro) { dentro = true; entrar(session.user); }
+  else if (!session) tela('login');
 })();

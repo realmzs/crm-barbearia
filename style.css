@@ -56,6 +56,7 @@ header .sair { color: #f5f2ed; border-color: #4a4239; }
 .tela h1 { margin: 0 0 4px; font-size: 22px; }
 .tela p { margin: 0; color: var(--muted); }
 .erro { color: var(--bad) !important; font-size: 14px; }
+.ok { color: var(--ok) !important; font-size: 14px; }
 
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 h2 { margin: 0 0 10px; font-size: 16px; }
